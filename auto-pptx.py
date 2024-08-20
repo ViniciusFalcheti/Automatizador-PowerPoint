@@ -4,10 +4,9 @@ import PySimpleGUI as sg
 class Pptxautomation:
 
     def __init__(self):
-        # prs = Presentation('apresentacao1.pptx')
-        # prs = Presentation('PADRAO-CULTO-ONLINE-TEMA-1.pptx')
-        # prs = Presentation('PADRAO-CULTO-ONLINE-TEMA-1 - Copia.pptx')
         prs = Presentation('PADRAO-CULTO-ONLINE.pptx')
+        
+        tema = self.escolhe_tema()
         
         titulo, pregador = self.define_titulo_e_pregador(prs)
 
@@ -21,13 +20,33 @@ class Pptxautomation:
         # Adicionando texto chave
         self.define_versiculos(prs, 1)
         
-        pontos = self.define_pontos(prs)
+        pontos = self.define_pontos(prs, tema)
 
-        # self.cria_slide_de_ponto(prs, 'ponto1', 1)
+        prs.save(f'{titulo.strip()} - {pregador.strip()}.pptx')
 
-        prs.save('new-apresentacao.pptx')
+    def escolhe_tema(self):
+        sg.theme('DarkAmber')
+        tema = 1
 
-    
+        layout = [
+            [sg.Text(f'Qual Tema deseja usar?')],
+            [sg.Text(f'Obs: Tema1: Pontos em laranja, Tema2: Pontos em branco')],
+            [sg.Button('Tema1'), sg.Button('Tema2')],
+        ]
+
+        window = sg.Window('Escolha de tema', layout)
+        event, values = window.read()
+
+        window.close()
+
+        match event:
+            case 'Tema1':
+                tema = 1
+            case 'Tema2':
+                tema = 2
+
+        return tema
+  
     def define_titulo_e_pregador(self, presentation):
         sg.theme('DarkAmber')
 
@@ -40,8 +59,6 @@ class Pptxautomation:
             [sg.Button('Confirmar')],
         ]
 
-        # resposta1 = input(self.pergunta1)
-
         window = sg.Window('Automação', layout)
 
         event, values = window.read()
@@ -50,12 +67,9 @@ class Pptxautomation:
         pregador = values['pregador']
         window.close()
 
-        # # Adicionando texto chave
-        # self.define_versiculos(presentation, 1)
-
         return titulo.title(), pregador.title()
     
-    def define_pontos(self, presentation):
+    def define_pontos(self, presentation, tema):
         sg.theme('DarkAmber')
 
         i = 1
@@ -80,7 +94,7 @@ class Pptxautomation:
             ponto = values['ponto']
             pontos.append(ponto)
 
-            self.cria_slide_de_ponto(presentation, ponto, i)
+            self.cria_slide_de_ponto(presentation, ponto, i, tema)
 
             # Adicionando versiculos ao pprt
             self.define_versiculos(presentation, 2)
@@ -104,8 +118,8 @@ class Pptxautomation:
         
         return pontos
 
-    def cria_slide_de_ponto(self, presentation, ponto, nmrPonto):
-        slide = presentation.slides.add_slide(presentation.slide_masters[1].slide_layouts[nmrPonto + 1])
+    def cria_slide_de_ponto(self, presentation, ponto, nmrPonto, tema):
+        slide = presentation.slides.add_slide(presentation.slide_masters[tema].slide_layouts[nmrPonto + 1])
         # subtitulo = slide.placeholders[1]
         subtitulo  = slide.shapes.title
         subtitulo.text = ponto.strip()
