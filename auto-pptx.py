@@ -15,7 +15,7 @@ class Pptxautomation:
         # texto.text = f'{titulo} {pregador}'
         texto.text = titulo.strip()
 
-        self.changePregadorNameToBold(prs, pregador.strip())
+        self.change_pregador_name_to_bold(prs, pregador.strip())
 
         # Adicionando texto chave
         self.define_versiculos(prs, 1)
@@ -157,7 +157,7 @@ class Pptxautomation:
                     [sg.Text(f'Digite o texto dos versículos')],
                     # [sg.Input(default_text='', key='versiculosText')],
                     [sg.Multiline(default_text='', key='versiculosText', size=(None, 5))],
-                    [sg.Button('Confirmar')],
+                    [sg.Button('Confirmar'), sg.Button('Cancelar')],
                 ]
 
                 window = sg.Window('Automação', layout)
@@ -199,7 +199,7 @@ class Pptxautomation:
             textVer = slide.placeholders[1]
             textVer.text = versiculo
     
-    def changePregadorNameToBold(self, presentation, pregador):
+    def change_pregador_name_to_bold(self, presentation, pregador):
         slide = presentation.slides[(0)]
         title = slide.shapes.title
         tf = title.text_frame
