@@ -5,24 +5,44 @@ class Pptxautomation:
 
     def __init__(self):
         prs = Presentation('PADRAO-CULTO-ONLINE.pptx')
-        
-        tema = self.escolhe_tema()
-        
-        titulo, pregador = self.define_titulo_e_pregador(prs)
 
-        slide = prs.slides.add_slide(prs.slide_masters[1].slide_layouts[0])
-        texto  = slide.shapes.title
-        # texto.text = f'{titulo} {pregador}'
-        texto.text = titulo.strip()
-
-        self.change_pregador_name_to_bold(prs, pregador.strip())
+        culto = self.escolhe_culto()
+        
+        if(culto == 'OesteNoite'):
+            tema = self.escolhe_tema()
+        else:
+            tema = 3 # TEMA == 3 SE CULTO FOR DO YES
+        
+        titulo, pregador = self.define_e_cria_slide_de_titulo_e_pregador(prs, culto)
 
         # Adicionando texto chave
-        self.define_versiculos(prs, 1)
+        self.define_versiculos(prs, 1, culto)
         
-        pontos = self.define_pontos(prs, tema)
+        pontos = self.define_pontos(prs, tema, culto)
 
         prs.save(f'{titulo.strip()} - {pregador.strip()}.pptx')
+
+    def escolhe_culto(self):
+        sg.theme('DarkAmber')
+        culto = 1
+
+        layout = [
+            [sg.Text(f'Para qual culto é o slide?')],
+            [sg.Button('Yes'), sg.Button('Oeste noite')],
+        ]
+
+        window = sg.Window('Escolha de culto', layout)
+        event, values = window.read()
+
+        window.close()
+
+        match event:
+            case 'Yes':
+                culto = 'Yes'
+            case 'Oeste noite':
+                culto = 'OesteNoite'
+
+        return culto
 
     def escolhe_tema(self):
         sg.theme('DarkAmber')
@@ -47,7 +67,7 @@ class Pptxautomation:
 
         return tema
   
-    def define_titulo_e_pregador(self, presentation):
+    def define_e_cria_slide_de_titulo_e_pregador(self, presentation, culto):
         sg.theme('DarkAmber')
 
         layout = [
@@ -59,7 +79,7 @@ class Pptxautomation:
             [sg.Button('Confirmar')],
         ]
 
-        window = sg.Window('Automação', layout)
+        window = sg.Window('Define Titulo e pregador', layout)
 
         event, values = window.read()
 
@@ -67,9 +87,24 @@ class Pptxautomation:
         pregador = values['pregador']
         window.close()
 
-        return titulo.title(), pregador.title()
+        if(culto == 'OesteNoite'):
+            slide = presentation.slides.add_slide(presentation.slide_masters[1].slide_layouts[0])
+            texto  = slide.shapes.title
+            # texto.text = f'{titulo} {pregador}'
+            texto.text = titulo.strip()
+
+            self.change_pregador_name_to_bold(presentation, pregador.strip())
+
+            return titulo.title(), pregador.title()
+        
+        slide = presentation.slides.add_slide(presentation.slide_masters[3].slide_layouts[0])
+        texto  = slide.shapes.title
+        # texto.text = f'{titulo} {pregador}'
+        texto.text = titulo.strip().upper()
+
+        return titulo.upper(), pregador.upper()      
     
-    def define_pontos(self, presentation, tema):
+    def define_pontos(self, presentation, tema, culto):
         sg.theme('DarkAmber')
 
         i = 1
@@ -94,10 +129,10 @@ class Pptxautomation:
             ponto = values['ponto']
             pontos.append(ponto)
 
-            self.cria_slide_de_ponto(presentation, ponto, i, tema)
+            self.cria_slide_de_ponto(presentation, ponto, i, tema, culto)
 
             # Adicionando versiculos ao pprt
-            self.define_versiculos(presentation, 2)
+            self.define_versiculos(presentation, 2, culto)
 
             layout = [
                 [sg.Text(f'Deseja adicionar outro ponto?')],
@@ -118,13 +153,18 @@ class Pptxautomation:
         
         return pontos
 
-    def cria_slide_de_ponto(self, presentation, ponto, nmrPonto, tema):
-        slide = presentation.slides.add_slide(presentation.slide_masters[tema].slide_layouts[nmrPonto + 1])
-        # subtitulo = slide.placeholders[1]
-        subtitulo  = slide.shapes.title
-        subtitulo.text = ponto.strip()
+    def cria_slide_de_ponto(self, presentation, ponto, nmrPonto, tema, culto):
+        if(culto == 'OesteNoite'):
+            slide = presentation.slides.add_slide(presentation.slide_masters[tema].slide_layouts[nmrPonto + 1])
+            # subtitulo = slide.placeholders[1]
+            subtitulo  = slide.shapes.title
+            subtitulo.text = ponto.strip()
+        else:
+            slide = presentation.slides.add_slide(presentation.slide_masters[3].slide_layouts[2])
+            subtitulo  = slide.shapes.title
+            subtitulo.text = f'{nmrPonto} {ponto.strip().upper()}'
 
-    def define_versiculos(self, presentation, mode):
+    def define_versiculos(self, presentation, mode, culto):
         temVersiculos = False
         flag = True
         
@@ -146,7 +186,6 @@ class Pptxautomation:
             case 'Não':
                 temVersiculos = False
                 return
-        
 
         if temVersiculos == True:
             while flag == True:
@@ -167,7 +206,7 @@ class Pptxautomation:
 
                 versiculosTitle, versiculosText = values['versiculosTitle'], values['versiculosText']
 
-                self.cria_slides_de_versiculo(presentation, versiculosTitle, versiculosText)
+                self.cria_slides_de_versiculo(presentation, versiculosTitle, versiculosText, culto)
 
                 # Criando tela que pergunta se deseja adicionar versículos ao ponto
                 layout = [
@@ -187,17 +226,23 @@ class Pptxautomation:
                         flag = False
                         return               
 
-    def cria_slides_de_versiculo(self, presentation, versiculoTitle, versiculoText):
+    def cria_slides_de_versiculo(self, presentation, versiculoTitle, versiculoText, culto):
         versiculos = versiculoText.splitlines()
         
         for versiculo in versiculos:
-            slide = presentation.slides.add_slide(presentation.slide_masters[1].slide_layouts[1])
+            if(culto == 'OesteNoite'):
+                slide = presentation.slides.add_slide(presentation.slide_masters[1].slide_layouts[1])
 
-            titleVer = slide.shapes.title
-            titleVer.text = versiculoTitle
+                titleVer = slide.shapes.title
+                titleVer.text = versiculoTitle
 
-            textVer = slide.placeholders[1]
-            textVer.text = versiculo
+                textVer = slide.placeholders[1]
+                textVer.text = versiculo
+            else:
+                slide = presentation.slides.add_slide(presentation.slide_masters[3].slide_layouts[1])
+
+                textVer = slide.shapes.title
+                textVer.text = f'{versiculo} {versiculoTitle}'
     
     def change_pregador_name_to_bold(self, presentation, pregador):
         slide = presentation.slides[(0)]
