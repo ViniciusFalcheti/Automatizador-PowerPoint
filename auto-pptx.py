@@ -8,12 +8,16 @@ class Pptxautomation:
 
         culto = self.escolhe_culto()
         
-        if(culto == 'OesteNoite'):
-            tema = self.escolhe_tema()
-        else:
-            tema = 3 # TEMA == 3 SE CULTO FOR DO YES
+        # if(culto == 'OesteNoite'):
+        #     tema = self.escolhe_tema()
+        # else:
+        #     tema = 3 # TEMA == 3 SE CULTO FOR DO YES
+
+
+        tema = self.escolhe_tema(culto)
+            
         
-        titulo, pregador = self.define_e_cria_slide_de_titulo_e_pregador(prs, culto)
+        titulo, pregador = self.define_e_cria_slide_de_titulo_e_pregador(prs, tema, culto)
 
         # Adicionando texto chave
         self.define_versiculos(prs, 1, culto)
@@ -44,30 +48,44 @@ class Pptxautomation:
 
         return culto
 
-    def escolhe_tema(self):
+    def escolhe_tema(self, culto):
         sg.theme('DarkAmber')
         tema = 1
 
-        layout = [
-            [sg.Text(f'Qual Tema deseja usar?')],
-            [sg.Text(f'Obs: Tema1: Pontos em laranja, Tema2: Pontos em branco')],
-            [sg.Button('Tema1'), sg.Button('Tema2')],
-        ]
+        if (culto == 'OesteNoite'):
+            layout = [
+                [sg.Text(f'Qual Tema deseja usar?')],
+                [sg.Text(f'Obs: Tema1: Pontos em laranja, Tema2: Pontos em branco')],
+                [sg.Button('Tema1'), sg.Button('Tema2')],
+            ]
+        else:
+            layout = [
+                [sg.Text(f'Qual Tema deseja usar?')],
+                [sg.Text(f'Obs: Tema1: Pontos em laranja, Tema2: Pontos em roxo')],
+                [sg.Button('Tema1'), sg.Button('Tema2')],
+            ]
 
         window = sg.Window('Escolha de tema', layout)
         event, values = window.read()
 
         window.close()
 
-        match event:
-            case 'Tema1':
-                tema = 1
-            case 'Tema2':
-                tema = 2
+        if (culto == 'OesteNoite'):
+            match event:
+                case 'Tema1':
+                    tema = 1
+                case 'Tema2':
+                    tema = 2
+        else:
+            match event:
+                case 'Tema1':
+                    tema = 3
+                case 'Tema2':
+                    tema = 4
 
         return tema
   
-    def define_e_cria_slide_de_titulo_e_pregador(self, presentation, culto):
+    def define_e_cria_slide_de_titulo_e_pregador(self, presentation, tema, culto):
         sg.theme('DarkAmber')
 
         layout = [
@@ -97,7 +115,7 @@ class Pptxautomation:
 
             return titulo.title(), pregador.title()
         
-        slide = presentation.slides.add_slide(presentation.slide_masters[3].slide_layouts[0])
+        slide = presentation.slides.add_slide(presentation.slide_masters[tema].slide_layouts[0])
         texto  = slide.shapes.title
         # texto.text = f'{titulo} {pregador}'
         texto.text = titulo.strip().upper()
@@ -160,9 +178,9 @@ class Pptxautomation:
             subtitulo  = slide.shapes.title
             subtitulo.text = ponto.strip()
         else:
-            slide = presentation.slides.add_slide(presentation.slide_masters[3].slide_layouts[2])
+            slide = presentation.slides.add_slide(presentation.slide_masters[tema].slide_layouts[2])
             subtitulo  = slide.shapes.title
-            subtitulo.text = f'{nmrPonto} {ponto.strip().upper()}'
+            subtitulo.text = f'{nmrPonto}. {ponto.strip()}'
 
     def define_versiculos(self, presentation, mode, culto):
         temVersiculos = False
@@ -241,8 +259,11 @@ class Pptxautomation:
             else:
                 slide = presentation.slides.add_slide(presentation.slide_masters[3].slide_layouts[1])
 
-                textVer = slide.shapes.title
-                textVer.text = f'{versiculo} {versiculoTitle}'
+                titleVer = slide.shapes.title
+                titleVer.text = versiculoTitle
+
+                textVer = slide.placeholders[1]
+                textVer.text = versiculo
     
     def change_pregador_name_to_bold(self, presentation, pregador):
         slide = presentation.slides[(0)]
