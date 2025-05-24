@@ -1,4 +1,5 @@
 from pptx import Presentation
+from pptx.util import Pt
 from docx import Document
 import tkinter as tk
 from tkinter import simpledialog
@@ -33,7 +34,7 @@ class PptxAutomationFromDocx:
         elif tema == 2:
             tema = 4
         elif tema == 3:
-            tema = 2  # Padrão para culto de manhã
+            tema = 2
 
         return tema
     
@@ -161,6 +162,10 @@ class PptxAutomationFromDocx:
         if self.tema != 4:
             self.change_pregador_name_to_bold(self.dados['pregador'].strip())
 
+        tituloParametro = self.dados['titulo'].strip() if self.tema == 4 else f"{self.dados['titulo'].strip()} {self.dados['pregador'].strip()}"
+
+        titulo.text_frame.paragraphs[0].font.size = self.ajustar_tamanho_fonte_por_texto(tituloParametro, tipo='titulo')
+
     def criar_slide_ponto(self, texto_ponto, numero, subtitulo_Ponto=None):
         if self.tema == 0: # Tema 0 - Padrão Online
             slide = self.prs.slides.add_slide(self.prs.slide_masters[self.tema].slide_layouts[numero+1])
@@ -178,6 +183,8 @@ class PptxAutomationFromDocx:
             textPonto = slide.shapes.title
             textPonto.text = f"{numero}. {texto_ponto.strip()}"
 
+        textPonto.text_frame.paragraphs[0].font.size = self.ajustar_tamanho_fonte_por_texto(f"{numero}. {texto_ponto.strip()}", tipo='ponto')
+
         if self.tema == 4: # Tema 4 - Padrão Manhã
             textTituloPalavra = slide.placeholders[11]
             textTituloPalavra.text = self.dados['titulo'].strip().upper()
@@ -188,7 +195,11 @@ class PptxAutomationFromDocx:
 
     def criar_slide_frase(self, frase):
         slide = self.prs.slides.add_slide(self.prs.slide_masters[self.tema].slide_layouts[4])
-        slide.shapes.title.text = frase.upper().strip()
+
+        frasePlaceHolder = slide.shapes.title
+
+        frasePlaceHolder.text = frase.upper().strip()
+        frasePlaceHolder.text_frame.paragraphs[0].font.size = self.ajustar_tamanho_fonte_por_texto(frase, tipo='frase')
 
     def criar_slides_de_versiculos(self, referencia, texto):
         versiculos = self.agrupar_versiculos_por_paragrafo(texto)
@@ -204,7 +215,13 @@ class PptxAutomationFromDocx:
 
     def criar_slide_versiculo(self, referencia, texto):
         slide = self.prs.slides.add_slide(self.prs.slide_masters[self.tema].slide_layouts[1])
-        if self.tema != 4:
+        if self.tema == 0:
+            textVer = slide.placeholders[1]
+            textVer.text = texto
+
+            textRef = slide.placeholders[10]
+            textRef.text = referencia
+        elif self.tema == 2:
             textRef = slide.shapes.title
             textRef.text = referencia
 
@@ -216,6 +233,9 @@ class PptxAutomationFromDocx:
 
             textRef = slide.placeholders[12]
             textRef.text = referencia
+
+        textRef.text_frame.paragraphs[0].font.size = self.ajustar_tamanho_fonte_por_texto(referencia, tipo='refVersiculo')
+        textVer.text_frame.paragraphs[0].font.size = self.ajustar_tamanho_fonte_por_texto(texto, tipo='versiculo')
 
     def eh_novo_versiculo(self, linha):
         return re.match(r'^(\d{1,2}|[\u00B2\u00B3\u00B9\u2070-\u2079]{1,2})\s', linha.strip()) is not None
@@ -258,6 +278,116 @@ class PptxAutomationFromDocx:
         font = run.font
         font.bold = True
 
+    def ajustar_tamanho_fonte_por_texto(self, texto, tipo='titulo'):
+        comprimento = len(texto)
+
+        if tipo == 'titulo':
+            if self.tema == 0: # Tema 0 - Padrão Online
+                if comprimento <= 30:
+                    return Pt(32)
+                elif comprimento <= 85:
+                    return Pt(24)
+                else:
+                    return Pt(18)
+            if self.tema == 2: # Tema 2 - Padrão Yes
+                if comprimento <= 25:
+                    return Pt(40)
+                if comprimento <= 35:
+                    return Pt(32)
+                if comprimento <= 45:
+                    return Pt(30)
+                else:
+                    return Pt(24)
+            elif self.tema == 4: # Tema 4 - Padrão Manhã
+                if comprimento <= 20:
+                    return Pt(100)
+                elif comprimento <= 30:
+                    return Pt(80)
+                elif comprimento <= 50:
+                    return Pt(60)
+                else:
+                    return Pt(48)
+        elif tipo == 'versiculo':
+            if self.tema == 0: # Tema 0 - Padrão Online
+                if comprimento <= 190:
+                    return Pt(24)
+                elif comprimento <= 310:
+                    return Pt(20)
+                elif comprimento <= 420:
+                    return Pt(18)
+                elif comprimento <= 580:
+                    return Pt(16)
+                else:
+                    return Pt(14)
+            elif self.tema == 2: # Tema 2 - Padrão Yes
+                if comprimento <= 300:
+                    return Pt(18)
+                elif comprimento <= 580:
+                    return Pt(16)
+                else:
+                    return Pt(14)
+            elif self.tema == 4: # Tema 4 - Padrão Manhã
+                if comprimento <= 380:
+                    return Pt(30)
+                elif comprimento <= 460:
+                    return Pt(28)
+                else:
+                    return Pt(24)
+        elif tipo == 'ponto':
+            if self.tema == 0: # Tema 0 - Padrão Online
+                if comprimento <= 30:
+                    return Pt(32)
+                elif comprimento <= 85:
+                    return Pt(24)
+                else:
+                    return Pt(18)
+            if self.tema == 2: # Tema 2 - Padrão Yes
+                if comprimento <= 40:
+                    return Pt(36)
+                elif comprimento <= 85:
+                    return Pt(26)
+                else:
+                    return Pt(22)
+            elif self.tema == 4: # Tema 4 - Padrão Manhã
+                if comprimento <= 25:
+                    return Pt(70)
+                elif comprimento <= 40:
+                    return Pt(54)
+                else:
+                    return Pt(48)
+        elif tipo == 'refVersiculo':
+            if self.tema == 0: # Tema 0 - Padrão Online
+                if comprimento <= 13:
+                    return Pt(24)
+                elif comprimento <= 20:
+                    return Pt(20)
+                else:
+                    return Pt(18)
+            if self.tema == 2: # Tema 2 - Padrão Yes
+                if comprimento <= 15:
+                    return Pt(18)
+                elif comprimento <= 20:
+                    return Pt(16)
+                else:
+                    return Pt(14)
+            if self.tema == 4: # Tema 4 - Padrão Manhã
+                if comprimento <= 18:
+                    return Pt(26)
+                elif comprimento <= 25:
+                    return Pt(20)
+                else:
+                    return Pt(18)
+        if tipo == 'frase':
+            if self.tema == 4: # Tema 4 - Padrão Manhã
+                if comprimento <= 20:
+                    return Pt(100)
+                elif comprimento <= 35:
+                    return Pt(80)
+                elif comprimento <= 55:
+                    return Pt(72)
+                else:
+                    return Pt(64)
+        
 if __name__ == "__main__":
     caminho_docx = 'entrada.docx'  # Nome do arquivo Word que você criou
     PptxAutomationFromDocx(caminho_docx)
