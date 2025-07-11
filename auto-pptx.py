@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import simpledialog
 from tkinter import messagebox
 import re
+import traceback
 
 class PptxAutomationFromDocx:
 
@@ -21,6 +22,8 @@ class PptxAutomationFromDocx:
                 self.exibir_mensagem_erro("O arquivo está aberto, feche-o e tente novamente.")
             else:
                 self.exibir_mensagem_erro(e)
+
+            traceback.print_exc()
 
     def escolher_tema(self):
         root = tk.Tk()
@@ -92,7 +95,7 @@ class PptxAutomationFromDocx:
             elif texto.lower().startswith('ponto'):
                 if ponto_atual:
                     dados['pontos'].append(ponto_atual)
-                ponto_atual = {'texto': texto.split(':', 1)[1].strip(), 'versiculos': [], 'subtitulo': ''}
+                ponto_atual = {'texto': texto.split(':', 1)[1].strip(), 'versiculos': [], 'subtitulo': '', 'frases': []}
                 el_anterior = 'ponto'
 
             elif texto.lower().startswith(('subtítulo:', 'subtitulo:')) and ponto_atual:
@@ -112,8 +115,14 @@ class PptxAutomationFromDocx:
                     el_anterior = 'texto'
 
             elif texto.lower().startswith('frase:'):
-                dados['frase'] = texto.replace('Frase:', '').strip()
+                frase = texto.replace('Frase:', '').replace('frase:', '').strip()
+                ponto_atual['frases'].append(frase)
                 el_anterior = 'frase'
+
+            # elif texto.lower().startswith('frase:'):
+            #     dados['frase'] = texto.replace('Frase:', '').strip()
+            #     el_anterior = 'frase'
+                
 
             elif regex.match(texto):
 
@@ -138,18 +147,23 @@ class PptxAutomationFromDocx:
             self.criar_slide_ponto(ponto['texto'], i, ponto['subtitulo']) #ponto['subtitulo']
             for versiculo in ponto['versiculos']:
                 self.criar_slides_de_versiculos(versiculo['referencia'], versiculo['texto'])
+            for frase in ponto['frases']:
+                self.criar_slide_frase(frase)
         
-        if self.tema == 4 and self.dados['frase']: # Tema 4 - Padrão Manhã
-            self.criar_slide_frase(self.dados['frase'])
+        # if self.tema == 4 and self.dados['frase']: # Tema 4 - Padrão Manhã
+        #     self.criar_slide_frase(self.dados['frase'])
 
         nome_arquivo = f"{self.dados['titulo'].strip()} - {self.dados['pregador'].strip()}.pptx"
+        nome_arquivo = self.limpar_nome_arquivo(nome_arquivo)
+
         self.prs.save(nome_arquivo)
         print(f"Apresentação salva como: {nome_arquivo}")
         self.exibir_mensagem_sucesso()
 
     def criar_slide_titulo(self):
         slide = self.prs.slides.add_slide(self.prs.slide_masters[self.tema].slide_layouts[0])
-        titulo = slide.shapes.title
+        titulo = slide.placeholders[10] if self.tema == 0 else slide.shapes.title
+        # titulo = slide.shapes.title
         titulo.text = self.dados['titulo'].strip().upper()
 
         if self.tema == 4: # Tema 4 - Padrão Manhã
@@ -194,11 +208,15 @@ class PptxAutomationFromDocx:
                 textSubtitulo.text = subtitulo_Ponto.strip()
 
     def criar_slide_frase(self, frase):
-        slide = self.prs.slides.add_slide(self.prs.slide_masters[self.tema].slide_layouts[4])
+        if self.tema == 4 : # Tema 4 - Padrão Manhã
+            slide = self.prs.slides.add_slide(self.prs.slide_masters[self.tema].slide_layouts[4])
+            frasePlaceHolder = slide.shapes.title
+            frasePlaceHolder.text = frase.upper().strip()
+        elif self.tema == 0: # Tema 0 - Padrão Online
+            slide = self.prs.slides.add_slide(self.prs.slide_masters[self.tema].slide_layouts[12])
+            frasePlaceHolder = slide.placeholders[11]
+            frasePlaceHolder.text = frase.strip()
 
-        frasePlaceHolder = slide.shapes.title
-
-        frasePlaceHolder.text = frase.upper().strip()
         frasePlaceHolder.text_frame.paragraphs[0].font.size = self.ajustar_tamanho_fonte_por_texto(frase, tipo='frase')
 
     def criar_slides_de_versiculos(self, referencia, texto):
@@ -216,7 +234,7 @@ class PptxAutomationFromDocx:
     def criar_slide_versiculo(self, referencia, texto):
         slide = self.prs.slides.add_slide(self.prs.slide_masters[self.tema].slide_layouts[1])
         if self.tema == 0:
-            textVer = slide.placeholders[1]
+            textVer = slide.placeholders[11]
             textVer.text = texto
 
             textRef = slide.placeholders[10]
@@ -269,7 +287,8 @@ class PptxAutomationFromDocx:
 
     def change_pregador_name_to_bold(self, pregador):
         slide = self.prs.slides[(0)]
-        title = slide.shapes.title
+        # title = slide.shapes.title
+        title = slide.placeholders[10] if self.tema == 0 else slide.shapes.title
         tf = title.text_frame
 
         p = tf.paragraphs[0]
@@ -377,17 +396,41 @@ class PptxAutomationFromDocx:
                     return Pt(20)
                 else:
                     return Pt(18)
-        if tipo == 'frase':
-            if self.tema == 4: # Tema 4 - Padrão Manhã
+        elif tipo == 'frase':
+            if self.tema == 0: # Tema 0 - Padrão Online
+                if comprimento <= 80:
+                    return Pt(28)
+                elif comprimento <= 125:
+                    return Pt(24)
+                else:
+                    return Pt(20)
+            elif self.tema == 4: # Tema 4 - Padrão Manhã
                 if comprimento <= 20:
                     return Pt(100)
                 elif comprimento <= 35:
                     return Pt(80)
                 elif comprimento <= 55:
                     return Pt(72)
-                else:
+                elif comprimento <= 90:
                     return Pt(64)
+                elif comprimento <= 130:
+                    return Pt(48)
+                else:
+                    return Pt(40)
         
+    def limpar_nome_arquivo(self, nome):
+        # Remove caracteres inválidos
+        nome_limpo = re.sub(r'[<>:"/\\|?*]', '', nome)
+
+        # Remove espaços ou pontos no final
+        nome_limpo = nome_limpo.rstrip(' .')
+
+        # Substitui por 'arquivo' se o nome ficar vazio ou só com espaços
+        if not nome_limpo.strip():
+            return 'arquivo'
+
+        return nome_limpo
+    
 if __name__ == "__main__":
     caminho_docx = 'entrada.docx'  # Nome do arquivo Word que você criou
     PptxAutomationFromDocx(caminho_docx)
